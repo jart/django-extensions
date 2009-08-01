@@ -1,11 +1,9 @@
 
-from babel import Locale
-from django.conf import settings
 from django_extensions.middleware.request import PAIN
 
-DEFAULT_LOCALE = Locale.parse(settings.LANGUAGE_CODE, sep='-')
-
 def default_locale():
+    from babel import Locale
+    DEFAULT_LOCALE = Locale.parse(settings.LANGUAGE_CODE, sep='-')
     return DEFAULT_LOCALE
 
 def get_locale():
@@ -15,12 +13,14 @@ def get_locale():
         return default_locale()
 
 def get_country():
+    from django.conf import settings
     try:
         return PAIN.request.country
     except AttributeError:
         return settings.DEFAULT_COUNTRY
 
 def get_timezone():
+    from django.conf import settings
     try:
         return PAIN.request.timezone
     except AttributeError:
