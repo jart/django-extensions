@@ -1,8 +1,3 @@
-#
-# Project Nemesis
-# Copyright (c) 2008 Lobstertech, Inc.
-# All Rights Reserved
-#
 
 import sys
 from recaptcha.client import captcha
