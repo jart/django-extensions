@@ -103,7 +103,7 @@ class Command(BaseCommand):
         make_option('--use-cprofile', action='store_true', dest='use_cprofile', default=False,
             help='Use cProfile if available, this is disabled per default because of incompatibilities.'),
         make_option('--kcachegrind', action='store_true', dest='use_lsprof', default=False,
-            help='Create kcachegrind compatible lsprof files, this requires and automatically enables cProfile.'),
+            help='Create kcachegrind compatible lsprof files, this requires and automatically enables cProfile.  Debian: apt-get install kcachegrind kcachegrind-converters'),
     )
     help = "Starts a lightweight Web server with profiling enabled."
     args = '[optional port number, or ipaddr:port]'
@@ -177,14 +177,21 @@ class Command(BaseCommand):
                         # seeing how long the request took is important!
                         elap = datetime.now() - start
                         elapms = elap.seconds * 1000.0 + elap.microseconds / 1000.0
-                        if USE_LSPROF:
-                            kg = KCacheGrind(prof)
-                            kg.output(file(profname, 'w'))
-                        elif USE_CPROFILE:
-                            prof.dump_stats(profname)
-                        profname2 = "%s.%06dms.%s.prof" % (path_name, elapms, datetime.now().isoformat())
+                        profname2 = "%s_%06dms_%s.prof" % (path_name, elapms, datetime.now().isoformat())
                         profname2 = os.path.join(prof_path, profname2)
-                        os.rename(profname, profname2)
+                        if USE_LSPROF:
+                            if os.path.exists('/usr/bin/'):
+                                prof.dump_stats(profname)
+                                assert os.spawnlp(
+                                    os.P_WAIT, "hotshot2calltree", "hotshot2calltree",
+                                    profname, profname2) == 0
+                            else:
+                                kg = KCacheGrind(prof)
+                                kg.output(file(profname2, 'w'))
+                        elif USE_CPROFILE:
+                            prof.dump_stats(profname2)
+                        else:
+                            os.rename(profname, profname2)
                 return handler
 
             print "Validating models..."
