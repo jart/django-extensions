@@ -5,7 +5,9 @@ See test_phonenumber.py for more information
 """
 
 import re
+import urllib
 
+PHONENO_URI = re.compile("(<|^)(sip|sips|tel):(?P<phoneno>\+?\d+)")
 NANP_NUMBER = re.compile("^(?P<npa>[2-9]\d\d)(?P<nxx>[2-9]\d\d)(?P<station>\d\d\d\d)$")
 NANP_COUNTRIES = ('US', 'CA', 'BB', 'BM', 'JM', 'BS', 'GU', 'GD', 'PR',
                   'KN', 'MS', 'KY', 'DO', 'DM', 'LC', 'TT', 'TC', 'VC',
@@ -244,6 +246,31 @@ COUNTRY_DIALING_PREFIX = {
     'MK': '389',
 }
 
+def easy_parse(number, country='US', default=None):
+    try:
+        return add_plus(parse_pstn_number(strip_uri(number), country))
+    except InvalidPSTNNumber:
+        if default is not None:
+            return default
+        else:
+            return number
+
+def easy_format(number, country='US', default=None):
+    try:
+        return e164_format(parse_pstn_number(number, country), country)
+    except InvalidPSTNNumber:
+        if default is not None:
+            return default
+        else:
+            return number
+
+def strip_uri(uri):
+    m = PHONENO_URI.search(urllib.unquote(uri))
+    if m:
+        return m.group('phoneno')
+    else:
+        return uri
+
 def i_said_ascii_god_damnit(s):
     if not s:
         return ''
@@ -437,12 +464,6 @@ def parse_caller_id(cid, country=None):
         return parse_pstn_number(cid, country)
     except InvalidPSTNNumber:
         return ''
-
-def easy_parse(number, country='US'):
-    try:
-        return add_plus(parse_pstn_number(number, country))
-    except InvalidPSTNNumber:
-        return number
 
 def country_in_nanp(country):
     assert len(country) == 2
