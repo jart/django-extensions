@@ -89,12 +89,38 @@ class PhoneInput(forms.TextInput):
             value = ''
         return forms.TextInput.render(self, name, value, attrs)
 
-class PhoneNumberField(forms.CharField):
+class CallerIDField(forms.CharField):
     widget = PhoneInput
     def __init__(self, *args, **kwargs):
-        self.is_cid = kwargs.pop('is_cid', False)
-        kwargs['max_length'] = 25
-        kwargs['min_length'] = 5
+        if 'max_length' not in kwargs:
+            kwargs['max_length'] = 25
+        if 'min_length' not in kwargs:
+            kwargs['min_length'] = 5
+        forms.CharField.__init__(self, *args, **kwargs)
+
+    def clean(self, value):
+        if not value or not value.strip():
+            if not self.required:
+                return ''
+            else:
+                raise forms.ValidationError(_("This field is required"))
+        if value.strip().lower() in ('', 'unavailable', 'anonymous'):
+            return ''
+        try:
+            return parse_pstn_number(value, get_country())
+        except ValueError:
+            raise forms.ValidationError(_("Invalid phone number"))
+
+class E164FormField(forms.CharField):
+    """
+    This is for when you ONLY want PSTN numbers and to ensure that
+    they're always in +12345678 (+E164) format.
+    """
+    def __init__(self, *args, **kwargs):
+        if 'max_length' not in kwargs:
+            kwargs['max_length'] = 20
+        if 'min_length' not in kwargs:
+            kwargs['min_length'] = 6
         forms.CharField.__init__(self, *args, **kwargs)
 
     def clean(self, value):
@@ -102,11 +128,26 @@ class PhoneNumberField(forms.CharField):
             if not self.required:
                 return ''
             else:
-                raise forms.ValidationError(_("This field is required"))
-        if self.is_cid:
-            if value.strip().lower() in ('', 'unavailable', 'anonymous'):
-                return ''
+                raise forms.ValidationError("This field is required")
         try:
-            return e164_to_nanp(parse_pstn_number(value, get_country()))
+            return parse_pstn_number(value, 'US')
         except ValueError:
-            raise forms.ValidationError(_("Invalid phone number"))
+            raise forms.ValidationError("Invalid +E164 Phone Number")
+
+class PhoneNumberFormField(forms.CharField):
+    """
+    This is for when they might type in an E164, or who knows, maybe a
+    SIP URL or extension or something.  What this does is let the user
+    input pass through, but if they type in something like
+    '222-333-4444' it will get fixed: '+12223334444'.
+    """
+    def clean(self, value):
+        if not value:
+            if not self.required:
+                return ''
+            else:
+                raise forms.ValidationError("This field is required")
+        try:
+            return parse_pstn_number(value, 'US')
+        except ValueError:
+            return value

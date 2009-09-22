@@ -17,7 +17,10 @@ def get_country():
     try:
         return PAIN.request.country
     except AttributeError:
-        return settings.DEFAULT_COUNTRY
+        try:
+            return settings.DEFAULT_COUNTRY
+        except AttributeError:
+            return 'US'
 
 def get_timezone():
     from django.conf import settings

@@ -7,10 +7,7 @@ except ImportError:
 PAIN = local()
 
 def global_request():
-    if hasattr(REQUEST_LOCAL, 'request'):
-        return PAIN.request
-    else:
-        return None
+    return PAIN.request
 
 class GlobalRequestMiddleware(object):
     def process_request(self, request):

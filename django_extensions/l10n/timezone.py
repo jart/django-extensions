@@ -1,9 +1,11 @@
 
 import re
 import pytz
+import babel
 from datetime import datetime
 from django.conf import settings
 from django.core.cache import cache
+from django_extensions.l10n import get_locale
 
 def linux_timezones():
     """
@@ -49,7 +51,7 @@ def localized_timezones(group=False, truncate=True):
     translated to your locale.  Usually used for displaying on an
     HTML form in a select box.
     """
-    locale = get_request().locale
+    locale = get_locale()
     key = 'localized_timezones_%s%s%s' % (
         locale, ['', '_grouped'][group], ['', '_truncated'][group])
     zones = cache.get(key)
